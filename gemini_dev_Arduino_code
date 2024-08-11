@@ -1,0 +1,251 @@
+#include <SoftwareSerial.h> // 블루투스 라이브러리 호출
+#include <Servo.h>          // 서보모터 라이프러리 호출
+
+#define BT_RXD 18
+#define BT_TXD 19
+
+SoftwareSerial mySerial(BT_RXD, BT_TXD);
+String myString = ""; // 받는 문자열
+
+//left arm servo class
+Servo L1;  // 왼손 엄지 L1 클래스
+Servo L2;  // 왼손 검지 L2 클래스
+Servo L3;  // 왼손 중지 L3 클래스
+Servo L4;  // 왼손 약지 L4 클래스
+Servo L5;  // 왼손 쌔끼 L5 클래스
+Servo L6;  // 왼쪽 팔꿈치 L6 클래스
+Servo L7;  // 왼쪽 팔뚝 좌우 L7 클래스
+Servo L8;  // 왼쪽 어깨 상하 L8 클래스
+
+//right arm servo class
+Servo R1;  // 오른손 엄지 L1 클래스
+Servo R2;  // 오른손 검지 L2 클래스
+Servo R3;  // 오른손 중지 L3 클래스
+Servo R4;  // 오른손 약지 L4 클래스
+Servo R5;  // 오른손 쌔끼 L5 클래스
+Servo R6;  // 오른쪽 팔꿈치 L6 클래스
+Servo R7;  // 오른쪽 팔뚝 좌우 L7 클래스
+Servo R8;  // 오른쪽 어깨 상하 L8 클래스
+Servo R9;  // 오른 손목 L9 클래스
+
+
+void setup() {  
+  Serial.begin(9600);   // 시리얼모니터  
+  Serial1.begin(9600); // 블루투스 시리얼 개방  
+
+  
+  /*서보모터_servo motor port*/
+  L1.attach(22);  // attaches the servo on pin 22 to the servo object
+  L2.attach(24);  // attaches the servo on pin 24 to the servo object
+  L3.attach(26);  // attaches the servo on pin 26 to the servo object
+  L4.attach(28);  // attaches the servo on pin 28 to the servo object
+  L5.attach(30);  // attaches the servo on pin 30 to the servo object
+  L6.attach(32);  // attaches the servo on pin 32 to the servo object
+  L7.attach(33);  // attaches the servo on pin 33 to the servo object
+  L8.attach(34);  // attaches the servo on pin 34 to the servo object
+
+  R1.attach(35);  // attaches the servo on pin 9 to the servo object
+  R2.attach(36);  // attaches the servo on pin 9 to the servo object
+  R3.attach(37);  // attaches the servo on pin 9 to the servo object
+  R4.attach(38);  // attaches the servo on pin 9 to the servo object
+  R5.attach(39);  // attaches the servo on pin 9 to the servo object
+  R6.attach(42);  // attaches the servo on pin 9 to the servo object
+  R7.attach(43);  // attaches the servo on pin 9 to the servo object
+  R8.attach(41);  // attaches the servo on pin 9 to the servo object
+  R9.attach(40);  // attaches the servo on pin 9 to the servo object
+
+       
+    
+  /*DC 모터_DC motor port*/
+  pinMode(44, OUTPUT);   // Pin 44를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(45, OUTPUT);   // Pin 45를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(46, OUTPUT);   // Pin 46를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(47, OUTPUT);   // Pin 47를 OUTPUT으로 설정 (LED ON/OFF)
+  
+  pinMode(48, OUTPUT);   // Pin 48를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(49, OUTPUT);   // Pin 49를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(50, OUTPUT);   // Pin 50를 OUTPUT으로 설정 (LED ON/OFF)
+  pinMode(51, OUTPUT);   // Pin 51를 OUTPUT으로 설정 (LED ON/OFF)
+    
+}
+
+void loop() {
+  /*
+   * 어깨 중간
+    R6.write(90);              // tell servo to go to position in variable 'pos'
+    delay(2000);
+    어깨 올리기
+    R6.write(70);              // tell servo to go to position in variable 'pos'
+    delay(2000);
+    */
+  
+  while (Serial1.available()) { // mySerial 값이 있으면  
+    char myChar = (char)Serial1.read(); // mySerial int 형식의 값을 char 형식으로 변환    
+    myString += myChar; // 수신되는 문자열을 myString에 모두 붙임 (1바이트씩 전송되는 것을 모두 붙임)    
+    delay(5); // 수신 문자열 끊김 방지  
+  }    
+    
+  if (myString.length() > 0) { // myString에 값이 있다면  
+    Serial.println("input value: " + myString); // 시리얼모니터에 myString 값 출력    
+    
+    if (myString == "front") { // 전진 //move forword
+
+      L1.write(0);              // tell servo to go to position in variable 'pos'
+    L2.write(0);              // tell servo to go to position in variable 'pos'
+    L3.write(10);  // attaches the servo on pin 9 to the servo object
+    L4.write(0);              // tell servo to go to position in variable 'pos'
+    L5.write(0);              // tell servo to go to position in variable 'pos'
+
+   
+      /*어깨 올리기*/
+      L7.write(120);              // tell servo to go to position in variable 'pos'
+      R6.write(60);              // tell servo to go to position in variable 'pos'
+      /*팔꿈치 굽히기*/
+      R8.write(160);              // tell servo to go to position in variable 'pos'
+
+    
+      /*왼쪽 바퀴*/
+      digitalWrite(47, HIGH); // LED ON    
+      digitalWrite(46, LOW); // LED ON             
+      digitalWrite(45, HIGH); // LED ON    
+      digitalWrite(44, LOW); // LED ON 
+      
+      /*오른쪽 바퀴*/
+      digitalWrite(51, HIGH); // LED ON    
+      digitalWrite(50, LOW); // LED ON             
+      digitalWrite(49, HIGH); // LED ON    
+      digitalWrite(48, LOW); // LED ON    
+    } 
+    
+    else if (myString == "back") { //후진  //go back
+
+      L1.write(0);              // tell servo to go to position in variable 'pos'
+    L2.write(0);              // tell servo to go to position in variable 'pos'
+    L3.write(10);  // attaches the servo on pin 9 to the servo object
+    L4.write(0);              // tell servo to go to position in variable 'pos'
+    L5.write(0);              // tell servo to go to position in variable 'pos'
+
+   
+      /*어깨 중간*/
+      L7.write(90);              // tell servo to go to position in variable 'pos'
+      R6.write(90);              // tell servo to go to position in variable 'pos'
+      /*팔꿈치 굽히기*/
+      R8.write(160);              // tell servo to go to position in variable 'pos'
+
+      /*오른쪽 바퀴*/
+      digitalWrite(51, LOW);   
+      digitalWrite(50, HIGH);             
+      digitalWrite(49, LOW);     
+      digitalWrite(48, HIGH);  
+
+      /*왼쪽 바퀴*/
+      digitalWrite(47, LOW);     
+      digitalWrite(46, HIGH);             
+      digitalWrite(45, LOW);     
+      digitalWrite(44, HIGH);          
+    }
+
+    else if (myString == "left") { //좌회전  //turn left 
+
+         L1.write(0);        // tell servo to go to position in variable 'pos'
+    L2.write(0);             // tell servo to go to position in variable 'pos'
+    L3.write(10);            // attaches the servo on pin 9 to the servo object
+    L4.write(0);             // tell servo to go to position in variable 'pos'
+    L5.write(0);             // tell servo to go to position in variable 'pos'
+
+   
+      /*어깨 중간*/
+      L7.write(90);              // tell servo to go to position in variable 'pos'
+      /*어깨 올리기*/
+      R6.write(60);              // tell servo to go to position in variable 'pos'
+      /*팔꿈치 굽히기*/
+      R8.write(160);             // tell servo to go to position in variable 'pos'
+
+      /*오른쪽 바퀴*/
+      digitalWrite(51, HIGH); // LED ON    
+      digitalWrite(50, LOW); // LED ON             
+      digitalWrite(49, HIGH); // LED ON    
+      digitalWrite(48, LOW); // LED ON  
+
+      /*왼쪽 바퀴*/
+      digitalWrite(47, LOW); // LED ON    
+      digitalWrite(46, HIGH); // LED ON             
+      digitalWrite(45, LOW); // LED ON    
+      digitalWrite(44, HIGH); // LED ON          
+    }
+    else if (myString == "right") { // 우회전  //turn right
+
+      L1.write(0);              // tell servo to go to position in variable 'pos'
+    L2.write(0);              // tell servo to go to position in variable 'pos'
+    L3.write(10);  // attaches the servo on pin 9 to the servo object
+    L4.write(0);              // tell servo to go to position in variable 'pos'
+    L5.write(0);              // tell servo to go to position in variable 'pos'
+
+   
+      /*어깨 올리기*/
+      L7.write(120);              // tell servo to go to position in variable 'pos'
+      /*어깨 중간*/
+      R6.write(90);              // tell servo to go to position in variable 'pos'
+      /*팔꿈치 굽히기*/
+      R8.write(160);              // tell servo to go to position in variable 'pos'
+      
+      /*오른쪽 바퀴*/
+      digitalWrite(51, LOW);     
+      digitalWrite(50, HIGH);             
+      digitalWrite(49, LOW);     
+      digitalWrite(48, HIGH);  
+
+      /*왼쪽 바퀴*/
+      digitalWrite(47, HIGH);     
+      digitalWrite(46, LOW);              
+      digitalWrite(45, HIGH);    
+      digitalWrite(44, LOW);           
+    }
+    else if (myString == "stop") { // 정지  //stop
+      L1.write(0);              // tell servo to go to position in variable 'pos'
+    L2.write(0);              // tell servo to go to position in variable 'pos'
+    L3.write(10);  // attaches the servo on pin 9 to the servo object
+    L4.write(0);              // tell servo to go to position in variable 'pos'
+    L5.write(0);              // tell servo to go to position in variable 'pos'
+
+       
+      /*오른쪽 바퀴*/
+      digitalWrite(51, LOW);  
+      digitalWrite(50, LOW);              
+      digitalWrite(49, LOW);   
+      digitalWrite(48, LOW);  
+
+      /*왼쪽 바퀴*/
+      digitalWrite(47, LOW); // LED ON    
+      digitalWrite(46, LOW); // LED ON             
+      digitalWrite(45, LOW); // LED ON    
+      digitalWrite(44, LOW); // LED ON  
+    }    
+    else if (myString == "hello") { // 인사 //greetings
+      
+      
+      /*오른쪽 바퀴*/
+      digitalWrite(51, LOW);   
+      digitalWrite(50, LOW);              
+      digitalWrite(49, LOW);    
+      digitalWrite(48, LOW);  
+
+      /*왼쪽 바퀴*/
+      digitalWrite(47, LOW);    
+      digitalWrite(46, LOW);             
+      digitalWrite(45, LOW);    
+      digitalWrite(44, LOW);
+
+       /**/
+        L1.write(150);              // tell servo to go to position in variable 'pos'
+        L2.write(180);              // tell servo to go to position in variable 'pos'
+        L3.write(180);              // tell servo to go to position in variable 'pos'
+        L4.write(150);              // tell servo to go to position in variable 'pos'
+        L5.write(130);              // tell servo to go to position in variable 'pos'
+        /*어깨 올리기*/
+        L7.write(120);              // tell servo to go to position in variable 'pos'
+       
+    }
+    myString = ""; // myString 변수값 초기화  
+  }
+}
