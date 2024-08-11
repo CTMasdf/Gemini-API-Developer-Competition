@@ -1,0 +1,615 @@
+package com.example.gemini_api_dev_robot_control;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+
+public class MainActivity extends AppCompatActivity {
+    TextView mTvBluetoothStatus;
+    TextView mTvReceiveData;
+    EditText mTvSendData;
+    Button mBtnConnect;
+    Button mBtnDisConnect;
+    Button mBtnSendData;
+    Button btnfront;
+    Button btnback;
+    Button btnleft;
+    Button btnright;
+    Button btnSttStart;
+    Button ask_button;
+
+    Intent SttIntent;
+    boolean isListening = false;
+    boolean isTriggered = false; // "야옹아"를 인식했는지 여부
+
+    private TextView textView;
+    private EditText editText;
+
+    private BluetoothAdapter mBluetoothAdapter;
+    Set<BluetoothDevice> mPairedDevices;
+    List<String> mListPairedDevices;
+
+    Handler mBluetoothHandler;
+    ConnectedBluetoothThread mConnectedBluetoothThread;
+    BluetoothDevice mBluetoothDevice;
+    BluetoothSocket mBluetoothSocket;
+
+    final static int BT_MESSAGE_READ = 2;
+    final static UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    private static final String TAG = "MainActivity";
+    private ArrayList<String> mMessages;
+    private ArrayAdapter<String> mMessageAdapter;
+
+    private Context cThis;
+    private SpeechRecognizer mRecognizer;
+    private TextToSpeech tts;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        cThis = this;
+        mRecognizer = SpeechRecognizer.createSpeechRecognizer(cThis);
+        mRecognizer.setRecognitionListener(listener);
+
+        SttIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        SttIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
+        SttIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");   //en-US english //ko-KR 한국어
+
+        tts = new TextToSpeech(cThis, status -> {
+            if (status != TextToSpeech.ERROR) {
+                tts.setLanguage(Locale.KOREAN); //Locale.US english, Locale.KOREAN 한국어
+            }
+        });
+
+        btnfront = findViewById(R.id.btnfront);
+        btnback = findViewById(R.id.btnback);
+        btnleft = findViewById(R.id.btnleft);
+        btnright = findViewById(R.id.btnright);
+
+        textView = findViewById(R.id.demotext);
+        editText = findViewById(R.id.user_question);
+
+        btnSttStart = findViewById(R.id.btn_stt_start);
+        btnSttStart.setOnClickListener(view -> {
+            if (ContextCompat.checkSelfPermission(cThis, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
+            } else {
+                startListening();
+            }
+        });
+
+        btnfront.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    // Button was pressed (command is sent forward). // 버튼 누른 상태 (전진 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("front");
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    //state in which button is released (send stop command) // 버튼 땔 상태 (정지 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("stop");
+                    }
+                }
+                return true;
+            }
+        });
+
+        btnback.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    // button pressed (send reverse command) // 버튼 누른 상태 (후진 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("back");
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    //state in which button is released (send stop command) // 버튼 땔 상태 (정지 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("stop");
+                    }
+                }
+                return true;
+            }
+        });
+
+        btnleft.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    //button pressed (send left turn command) // 버튼 누른 상태 (좌회전 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("left");
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    //state in which button is released (send stop command) // 버튼 땔 상태 (정지 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("stop");
+                    }
+                }
+                return true;
+            }
+        });
+
+        btnright.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    //button pressed (send right turn command) // 버튼 누른 상태 (우회전 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("right");
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    //state in which button is released (send stop command) // 버튼 땔 상태 (정지 명령어 전송)
+                    if (mConnectedBluetoothThread != null) {
+                        mConnectedBluetoothThread.write("stop");
+                    }
+                }
+                return true;
+            }
+        });
+
+
+        // Set whether to activate Bluetooth
+        // 블루투스 활성화 여부 설정
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, "This device does not support Bluetooth.", Toast.LENGTH_SHORT).show();    //This device does not support Bluetooth. // 블루투스 미지원 기기입니다.
+            finish();
+        }
+
+        // set permissions // 권한 설정
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            requestPermissions(new String[]{
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 1);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(new String[]{
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 1);
+        }
+
+        // relevant initialization // 관련 초기화
+        mTvBluetoothStatus = findViewById(R.id.tvBluetoothStatus);
+        mTvReceiveData = findViewById(R.id.tvReceiveData);
+        mTvSendData = findViewById(R.id.tvSendData);
+        mBtnConnect = findViewById(R.id.btnConnect);
+        mBtnDisConnect = findViewById(R.id.btnDisConnect);
+        mBtnSendData = findViewById(R.id.btnSendData);
+        //mMessageList = findViewById(R.id.message_list_view);
+        mMessages = new ArrayList<>();
+        mMessageAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, mMessages);
+        //mMessageList.setAdapter(mMessageAdapter);
+
+        // Method to check if the Bluetooth function is supported // 블루투스 기능을 지원하는지 알아오는 메서드
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        //Function that runs when the button is pressed // 버튼 눌렀을 때 동작하는 기능들
+        mBtnConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                listPairedDevices();
+            }
+        });
+
+        mBtnDisConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                disconnectSelectedDevice();
+            }
+        });
+
+        mBtnSendData.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String message = mTvSendData.getText().toString();
+                if (!message.isEmpty() && mConnectedBluetoothThread != null) {
+                    mConnectedBluetoothThread.write(message);
+                    mTvSendData.setText("");
+                }
+            }
+        });
+        Button askButton = findViewById(R.id.ask_button); // Button 추가
+
+        askButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String question = editText.getText().toString().trim();
+                if (!TextUtils.isEmpty(question)) {
+                    modelCall(question);
+                }
+            }
+        });
+        // 블루투스 핸들러로 연결 뒤, 수신된 데이터를 읽어오는 부분
+        /*mBluetoothHandler = new Handler(Looper.getMainLooper()) {
+            public void handleMessage(android.os.Message msg) {
+                if (msg.what == BT_MESSAGE_READ) {
+                    String readMessage = null;
+                    try {
+                        readMessage = new String((byte[]) msg.obj, "UTF-8");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    mMessages.add(readMessage);
+                    mMessageAdapter.notifyDataSetChanged();
+                }
+            }
+        };*/
+        // 음성 인식 자동 시작
+        startListening();
+    }
+
+
+
+    void listPairedDevices() {
+        if (mBluetoothAdapter.isEnabled()) {
+            mPairedDevices = mBluetoothAdapter.getBondedDevices();
+
+            if (mPairedDevices.size() > 0) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Select device");  //Select device // 장치선택
+
+                mListPairedDevices = new ArrayList<>();
+                for (BluetoothDevice device : mPairedDevices) {
+                    mListPairedDevices.add(device.getName());
+                }
+                final CharSequence[] items = mListPairedDevices.toArray(new CharSequence[0]);
+
+                builder.setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int item) {
+                        for (BluetoothDevice device : mPairedDevices) {
+                            if (device.getName().equals(items[item].toString())) {
+                                connectSelectedDevice(device.getAddress());
+                                mTvBluetoothStatus.setText("connected to " + device.getName());
+                                break;
+                            }
+                        }
+                    }
+                });
+                AlertDialog alert = builder.create();
+                alert.show();
+            } else {
+                Toast.makeText(getApplicationContext(), "There are no paired devices.", Toast.LENGTH_LONG).show();  //There are no paired devices. //페어링된 기기가 없습니다.
+            }
+        } else {
+            Toast.makeText(getApplicationContext(), "Bluetooth is disabled.", Toast.LENGTH_SHORT).show();   //Bluetooth is disabled. //블루투스가 비활성화되었습니다.
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void connectSelectedDevice(String address) {
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        try {
+            mBluetoothSocket = createBluetoothSocket(device);
+            mBluetoothSocket.connect();
+            mConnectedBluetoothThread = new ConnectedBluetoothThread(mBluetoothSocket);
+            mConnectedBluetoothThread.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(), "Connection failed", Toast.LENGTH_SHORT).show();    //Connection failed //연결실패
+            try {
+                mBluetoothSocket.close();
+            } catch (IOException e2) {
+                e2.printStackTrace();
+            }
+        }
+    }
+
+    private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException {
+        return device.createRfcommSocketToServiceRecord(BT_UUID);
+    }
+
+    @SuppressLint("MissingPermission")
+    public void disconnectSelectedDevice() {
+        if (mConnectedBluetoothThread != null) {
+            mConnectedBluetoothThread.cancel();
+            mConnectedBluetoothThread = null;
+        }
+        if (mBluetoothAdapter != null) {
+            mBluetoothAdapter.cancelDiscovery();
+        }
+        mTvBluetoothStatus.setText("The connection has ended"); //The connection has ended //연결종료
+    }
+
+    private class ConnectedBluetoothThread extends Thread {
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+
+
+        public ConnectedBluetoothThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            try {
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];
+            int bytes;
+
+            while (true) {
+                try {
+                    bytes = mmInStream.read(buffer);
+                    if (bytes > 0) {
+                        mBluetoothHandler.obtainMessage(BT_MESSAGE_READ, bytes, -1, buffer).sendToTarget();
+                    }
+                } catch (IOException e) {
+                    break;
+                }
+            }
+        }
+
+        public void write(String input) {
+            byte[] bytes = input.getBytes();
+            try {
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void startListening() {
+
+        if (!isListening) {
+            isListening = true;
+            mRecognizer.startListening(SttIntent);
+        }
+    }
+
+    private final RecognitionListener listener = new RecognitionListener() {
+        @Override
+        public void onReadyForSpeech(Bundle params) {
+            Log.d(TAG, "onReadyForSpeech");
+        }
+
+        @Override
+        public void onBeginningOfSpeech() {
+            Log.d(TAG, "onBeginningOfSpeech");
+        }
+
+        @Override
+        public void onRmsChanged(float rmsdB) {}
+
+        @Override
+        public void onBufferReceived(byte[] buffer) {}
+
+        @Override
+        public void onEndOfSpeech() {
+            isListening = false;
+            startListening(); //Maintain voice recognition// 음성 인식을 계속 유지
+        }
+
+        @Override
+        public void onError(int error) {
+            isListening = false;
+            startListening(); // Restart voice recognition when an error occurs // 에러 발생 시 음성 인식을 다시 시작
+        }
+
+        @Override
+        public void onResults(Bundle results) {
+            ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (matches != null) {
+                handleVoiceInput(matches.get(0));
+            }
+            startListening(); // Continue voice recognition after processing results // 결과 처리 후 음성 인식을 계속 유지
+        }
+
+        @Override
+        public void onPartialResults(Bundle partialResults) {}
+
+        @Override
+        public void onEvent(int eventType, Bundle params) {}
+    };
+
+    private void handleVoiceInput(String input) {
+        if (input.contains("클로버")) {
+            isTriggered = true;
+            FuncVoiceOut("무엇을 도와드릴까요?");
+        } else if (isTriggered) {
+            // Provide 2 second delay// 딜레이 2초 부여
+            new Handler().postDelayed(() -> {
+                // "앞으로가" 명령어가 있을 경우, Gemini API 호출을 건너뜁니다.
+                if (input.contains("앞으로가") || input.contains("전진")) {
+                    FuncVoiceOrderCheck(input);
+                }
+                else if (input.contains("뒤로가") || input.contains("후진")) {
+                    FuncVoiceOrderCheck(input);
+                }
+                else if (input.contains("왼쪽으로돌아") || input.contains("좌회전")) {
+                    FuncVoiceOrderCheck(input);
+                }
+                else if (input.contains("오른쪽으로돌아") || input.contains("우회전")) {
+                    FuncVoiceOrderCheck(input);
+                }
+                else if (input.contains("멈춰") || input.contains("정지")) {
+                    FuncVoiceOrderCheck(input);
+                }
+
+                else {
+                    FuncVoiceOrderCheck(input);
+                    modelCall(input); // Gemini API 호출
+                }
+
+                isTriggered = false;
+            }, 1000); // 2000 milisecond = 2 second
+        }
+    }
+    private void FuncVoiceOrderCheck(String VoiceMsg) {
+        if (VoiceMsg.length() < 1) return;
+
+        VoiceMsg = VoiceMsg.replace(" ", ""); // remove spaces // 공백 제거
+
+        //greetings // 인사
+        if (VoiceMsg.contains("안녕") || VoiceMsg.contains("반가워")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("hello");
+            }
+        }
+
+        //go forward // 전진
+        if (VoiceMsg.contains("앞으로가") || VoiceMsg.contains("전진")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("front");
+            }
+        }
+
+        //go back // 후진
+        if (VoiceMsg.contains("뒤로가") || VoiceMsg.contains("후진")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("back");
+            }
+        }
+
+        //turn left // 좌회전
+        if (VoiceMsg.contains("왼쪽으로돌아") || VoiceMsg.contains("좌회전")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("left");
+            }
+        }
+
+        //turn right // 우회전
+        if (VoiceMsg.contains("오른쪽으로돌아") || VoiceMsg.contains("우회전")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("right");
+            }
+        }
+
+        //stop // 정지
+        if (VoiceMsg.contains("멈춰") || VoiceMsg.contains("정지")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("stop");
+            }
+        }
+
+        //shild // 방어
+        if (VoiceMsg.contains("shild") || VoiceMsg.contains("blocking")) {
+            if (mConnectedBluetoothThread != null) {
+                mConnectedBluetoothThread.write("bloking");
+            }
+        }
+    }
+
+    private void FuncVoiceOut(String OutMsg) {
+        if (OutMsg.length() < 1) return;
+
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
+        tts.speak(OutMsg, TextToSpeech.QUEUE_FLUSH, null);
+    }
+
+    public void modelCall(String question) {
+        GenerativeModel gm = new GenerativeModel("gemini-1.5-flash", "Gemini Api Key");
+        GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+        Content content = new Content.Builder().addText(question).build();
+        ListenableFuture<GenerateContentResponse> response = model.generateContent(content);
+
+        Futures.addCallback(response, new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(GenerateContentResponse result) {
+                String resultText = result.getText();
+                //Remove '*' character // '*' 문자 제거
+                String sanitizedText = resultText.replace("*", "");
+
+                FuncVoiceOut(sanitizedText); // Print the corrected answer via TTS. // TTS로 수정된 답변 출력
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                t.printStackTrace();
+                FuncVoiceOut("Your question could not be processed.");  //"질문을 처리하는 데 실패했습니다."
+            }
+        }, this.getMainExecutor());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+            tts = null;
+        }
+        if (mRecognizer != null) {
+            mRecognizer.destroy();
+            mRecognizer.cancel();
+            mRecognizer = null;
+        }
+    }
+
+}
