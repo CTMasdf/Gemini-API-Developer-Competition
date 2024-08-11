@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/tvBluetoothStatus"
+        android:layout_width="0dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="29dp"
+        android:layout_marginBottom="48dp"
+        android:text="status"
+        app:layout_constraintBottom_toBottomOf="@+id/btnConnect"
+        app:layout_constraintEnd_toEndOf="@+id/btnDisConnect"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnConnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:text="bluetooth connection"
+        app:layout_constraintStart_toStartOf="@+id/btnSendData"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnDisConnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:text="end"
+        app:layout_constraintStart_toEndOf="@+id/btnConnect"
+        app:layout_constraintTop_toBottomOf="@+id/tvBluetoothStatus" />
+
+    <TextView
+        android:id="@+id/tvReceiveData"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Receive"
+        app:layout_constraintBottom_toTopOf="@+id/tvReceiveDataView"
+        app:layout_constraintStart_toStartOf="@+id/btnSendData"
+        app:layout_constraintTop_toTopOf="@+id/tvReceiveDataView" />
+
+    <TextView
+        android:id="@+id/tvReceiveDataView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="42dp"
+        android:layout_marginTop="23dp"
+        android:layout_marginEnd="49dp"
+        android:layout_marginBottom="28dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/ask_button"
+        app:layout_constraintStart_toStartOf="@+id/user_question"
+        app:layout_constraintTop_toBottomOf="@+id/tvSendData" />
+
+    <Button
+        android:id="@+id/btnSendData"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="8dp"
+        android:text="forwarding"
+        app:layout_constraintEnd_toStartOf="@+id/tvSendData"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnConnect" />
+
+    <EditText
+        android:id="@+id/tvSendData"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Send Data"
+        app:layout_constraintBaseline_toBaselineOf="@+id/btnSendData"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnSendData" />
+
+    <Button
+        android:id="@+id/btnfront"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="101dp"
+        android:layout_marginEnd="105dp"
+        android:text="front"
+        app:layout_constraintEnd_toStartOf="@+id/ask_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_stt_start" />
+
+    <Button
+        android:id="@+id/btnback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="back"
+        app:layout_constraintEnd_toStartOf="@+id/btnright"
+        app:layout_constraintTop_toBottomOf="@+id/btnleft" />
+
+    <Button
+        android:id="@+id/btnleft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="left"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnfront" />
+
+    <Button
+        android:id="@+id/btnright"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="right"
+        app:layout_constraintStart_toEndOf="@+id/btnfront"
+        app:layout_constraintTop_toBottomOf="@+id/btnfront" />
+
+    <EditText
+        android:id="@+id/user_question"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Enter your question here"
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvReceiveData" />
+
+    <TextView
+        android:id="@+id/demotext"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:padding="16dp"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnback" />
+
+    <Button
+        android:id="@+id/ask_button"
+        android:layout_width="109dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="102dp"
+        android:layout_marginBottom="103dp"
+        android:text="Ask a question"
+        app:layout_constraintBottom_toTopOf="@+id/demotext"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnfront"
+        app:layout_constraintTop_toBottomOf="@+id/tvSendData" />
+
+    <Button
+        android:id="@+id/btn_stt_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="176dp"
+        android:text="voice activation"
+        app:layout_constraintEnd_toStartOf="@+id/ask_button"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/user_question" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
